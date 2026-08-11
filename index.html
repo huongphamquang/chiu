@@ -11,8 +11,18 @@
 <body>
   <main class="app">
 
+    <!-- MÀN HÌNH CHỌN BÉ -->
+    <section id="choose" class="screen">
+      <div class="sun">☀️</div>
+      <p class="greeting">Chào buổi sáng!</p>
+      <h1 class="today-title">Bé nào nghe sáng nay?</h1>
+      <div class="profile-cards" id="profileCards"></div>
+    </section>
+
     <!-- MÀN HÌNH CHỜ: hiện chương trình hôm nay + nút Bắt đầu -->
-    <section id="home" class="screen">
+    <section id="home" class="screen hidden">
+      <button id="changeProfileBtn" class="back-btn">‹ Đổi bé</button>
+      <p class="profile-tag" id="profileTag"></p>
       <div class="sun">☀️</div>
       <p class="greeting" id="greeting">Chào buổi sáng!</p>
       <h1 class="today-title">

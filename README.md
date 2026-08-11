@@ -1,18 +1,19 @@
 # 🌞 Chương Trình Sáng Của Bé
 
-Một website nhỏ để mỗi sáng đưa bé đi học, anh chỉ cần **mở web → bấm 1 nút** là bé
-được nghe một "chương trình" tiếng Anh ~15 phút (bài hát + học chữ/số/màu + vận động),
-tự phát hết rồi dừng.
+Một website nhỏ để mỗi sáng đưa các bé đi học: **mở web → chọn bé → bấm 1 nút** là bé
+được nghe/xem một "chương trình" ~15 phút phù hợp lứa tuổi, tự phát hết rồi dừng.
 
-- **Mỗi ngày trong tuần một chủ đề** (tự đổi theo ngày, không cần chọn):
-  - Thứ Hai — 🔤 ABC & Chữ cái
-  - Thứ Ba — 🔢 Số đếm
-  - Thứ Tư — 🎨 Màu sắc & Hình khối
-  - Thứ Năm — 🐮 Thế giới động vật
-  - Thứ Sáu — 🕺 Vận động & Cơ thể
-  - Thứ Bảy — 🌦️ Khám phá thế giới
-  - Chủ Nhật — ⭐ Tổng hợp yêu thích
-- Nguồn video: kênh giáo dục uy tín cho bé — **Super Simple Songs**, Pinkfong, StoryBots.
+## 3 hồ sơ bé
+- 🧒 **Bé 3 tuổi** — *Tiếng Anh*: bài hát + học chữ/số/màu/vận động
+  (Super Simple Songs, Pinkfong, StoryBots).
+- 👧 **Bé 7 tuổi** — *Song ngữ Việt–Anh*: khoa học vui, đọc sách, động vật, cổ tích
+  (SciShow Kids, Storyline Online, Nat Geo Kids, THVL Cổ Tích, POKI).
+- 👩 **Bé 12 tuổi** — *Song ngữ Việt–Anh*: câu đố tư duy, vũ trụ, cơ thể người, kiến thức
+  (TED-Ed, SciShow, kiến thức & kỹ năng sống tiếng Việt).
+
+Mỗi bé có **7 chương trình theo ngày trong tuần** (Thứ Hai → Chủ Nhật), tự chọn đúng
+chủ đề của hôm nay. Trong app có thể bấm **"Đổi bé"** hoặc **"Chọn chương trình ngày khác"**.
+
 - Video nào lỗi/không cho nhúng sẽ **tự động bỏ qua** sang bài kế.
 - Đang phát thì **giữ màn hình sáng** (tiện để điện thoại trên xe).
 
@@ -56,6 +57,7 @@ Rồi mở trình duyệt vào `http://localhost:8123`.
 ## Muốn thêm / đổi / bớt video?
 
 Mở file **`programs.js`** — mọi thứ nằm ở đó, có ghi chú tiếng Việt.
+File này chứa 3 hồ sơ bé (`boy3`, `girl7`, `girl12`); mỗi hồ sơ có 7 ngày.
 
 - Mỗi ngày là một danh sách các dòng:
   ```js
