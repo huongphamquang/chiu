@@ -1,0 +1,3 @@
+# Không cần commit file tạm
+*.log
+.DS_Store

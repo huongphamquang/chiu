@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffb703" />
+  <title>Chương Trình Sáng Của Bé</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+
+    <!-- MÀN HÌNH CHỜ: hiện chương trình hôm nay + nút Bắt đầu -->
+    <section id="home" class="screen">
+      <div class="sun">☀️</div>
+      <p class="greeting" id="greeting">Chào buổi sáng!</p>
+      <h1 class="today-title">
+        <span id="today-emoji">⭐</span>
+        <span id="today-theme">Chương trình hôm nay</span>
+      </h1>
+      <p class="today-day" id="today-day"></p>
+      <p class="today-desc" id="today-desc"></p>
+
+      <button id="startBtn" class="big-play" aria-label="Bắt đầu phát">
+        <span class="play-icon">▶</span>
+        <span class="big-play-text">Bắt đầu nghe</span>
+      </button>
+      <p class="hint">~15 phút &middot; tự phát hết rồi dừng</p>
+
+      <!-- Danh sách bài của hôm nay -->
+      <ol class="tracklist" id="homeTracklist"></ol>
+
+      <!-- Đổi sang ngày khác -->
+      <details class="day-picker">
+        <summary>Chọn chương trình ngày khác</summary>
+        <div class="day-buttons" id="dayButtons"></div>
+      </details>
+    </section>
+
+    <!-- MÀN HÌNH PHÁT -->
+    <section id="playing" class="screen hidden">
+      <div class="player-wrap">
+        <div id="player"></div>
+      </div>
+
+      <div class="now-playing">
+        <p class="progress" id="progress">Bài 1/6</p>
+        <p class="now-title" id="nowTitle">—</p>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn" class="ctrl" aria-label="Bài trước">⏮</button>
+        <button id="playPauseBtn" class="ctrl ctrl-main" aria-label="Tạm dừng">⏸</button>
+        <button id="nextBtn" class="ctrl" aria-label="Bài kế">⏭</button>
+      </div>
+
+      <ol class="tracklist tracklist-playing" id="playTracklist"></ol>
+
+      <button id="stopBtn" class="text-btn">■ Dừng &amp; về trang chính</button>
+    </section>
+
+    <!-- MÀN HÌNH KẾT THÚC -->
+    <section id="done" class="screen hidden">
+      <div class="sun">🎉</div>
+      <h1 class="today-title">Xong chương trình sáng nay!</h1>
+      <p class="today-desc">Chúc con một ngày học vui vẻ ở trường nhé 💛</p>
+      <button id="replayBtn" class="big-play">
+        <span class="play-icon">↻</span>
+        <span class="big-play-text">Nghe lại</span>
+      </button>
+      <button id="homeBtn" class="text-btn">Về trang chính</button>
+    </section>
+
+  </main>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="programs.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Chương Trình Sáng Của Bé",
+  "short_name": "Sáng Của Bé",
+  "description": "Chương trình học tiếng Anh 15 phút cho bé nghe mỗi sáng đi học.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff7e6",
+  "theme_color": "#ffb703",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,267 @@
+/* ===== Nền & màu chủ đạo — ấm áp, buổi sáng, thân thiện với bé ===== */
+:root {
+  --bg1: #fff7e6;
+  --bg2: #ffe3b3;
+  --card: #ffffff;
+  --ink: #3b2f18;
+  --ink-soft: #7a6a4a;
+  --accent: #ff8c42;
+  --accent-2: #ffb703;
+  --green: #2ec27e;
+  --shadow: 0 10px 30px rgba(180, 120, 20, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg1: #241d0f;
+    --bg2: #3a2e14;
+    --card: #2f2717;
+    --ink: #fdf3df;
+    --ink-soft: #cbb78d;
+    --accent: #ff9e57;
+    --accent-2: #ffc23c;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--bg1), var(--bg2));
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+}
+
+.screen { text-align: center; }
+.hidden { display: none !important; }
+
+/* ===== Màn hình chờ ===== */
+.sun {
+  font-size: 64px;
+  line-height: 1;
+  margin-top: 10px;
+  animation: bob 3s ease-in-out infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.greeting {
+  font-size: 18px;
+  color: var(--ink-soft);
+  margin: 12px 0 2px;
+  font-weight: 600;
+}
+
+.today-title {
+  font-size: 30px;
+  margin: 4px 16px 6px;
+  line-height: 1.2;
+}
+.today-title #today-emoji { font-size: 34px; }
+
+.today-day {
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.today-desc {
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin: 0 auto 22px;
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+/* ===== Nút phát lớn ===== */
+.big-play {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  background: radial-gradient(circle at 30% 25%, var(--accent-2), var(--accent));
+  color: #fff;
+  border-radius: 28px;
+  padding: 22px 40px;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.big-play:active { transform: scale(0.96); }
+.play-icon { font-size: 40px; line-height: 1; }
+.big-play-text { font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
+
+.hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 12px 0 26px;
+}
+
+/* ===== Danh sách bài ===== */
+.tracklist {
+  list-style: none;
+  counter-reset: t;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 480px;
+  text-align: left;
+}
+.tracklist li {
+  counter-increment: t;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 3px 10px rgba(150, 110, 30, 0.08);
+  font-size: 15px;
+}
+.tracklist li::before {
+  content: counter(t);
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg2);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+.tracklist li.current {
+  outline: 3px solid var(--accent);
+  background: linear-gradient(90deg, rgba(255,140,66,0.14), var(--card));
+}
+.tracklist li.current::before { background: var(--accent); color: #fff; }
+.tracklist li.played { opacity: 0.55; }
+.tracklist li.played::before { background: var(--green); color: #fff; }
+
+/* ===== Chọn ngày ===== */
+.day-picker {
+  margin: 26px auto 0;
+  max-width: 480px;
+  text-align: left;
+}
+.day-picker summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 10px 4px;
+  list-style: none;
+}
+.day-picker summary::-webkit-details-marker { display: none; }
+.day-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.day-buttons button {
+  border: 2px solid transparent;
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.day-buttons button.active {
+  border-color: var(--accent);
+  background: rgba(255, 140, 66, 0.12);
+}
+.day-buttons button small {
+  display: block;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* ===== Màn hình phát ===== */
+.player-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow);
+}
+#player, #player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.now-playing { margin: 18px 0 6px; }
+.progress { font-size: 14px; color: var(--ink-soft); margin: 0 0 4px; font-weight: 700; }
+.now-title { font-size: 20px; font-weight: 800; margin: 0; }
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin: 16px 0 4px;
+}
+.ctrl {
+  border: none;
+  cursor: pointer;
+  background: var(--card);
+  color: var(--ink);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  font-size: 22px;
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+}
+.ctrl:active { transform: scale(0.94); }
+.ctrl-main {
+  width: 74px;
+  height: 74px;
+  font-size: 30px;
+  background: radial-gradient(circle at 30% 25%, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.tracklist-playing { margin-top: 22px; }
+
+.text-btn {
+  margin-top: 20px;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px;
+  text-decoration: underline;
+}
+
+#done .big-play { margin-top: 8px; }
+#done .text-btn { display: block; margin: 18px auto 0; }
