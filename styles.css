@@ -273,6 +273,15 @@ body {
 .now-playing { margin: 18px 0 6px; }
 .progress { font-size: 14px; color: var(--ink-soft); margin: 0 0 4px; font-weight: 700; }
 .now-title { font-size: 20px; font-weight: 800; margin: 0; }
+.status {
+  min-height: 1.4em;
+  margin: 8px auto 0;
+  max-width: 36ch;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.4;
+}
 
 .controls {
   display: flex;

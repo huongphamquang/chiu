@@ -2,12 +2,27 @@
  *  CHƯƠNG TRÌNH SÁNG CỦA BÉ  —  logic điều khiển (3 bé)
  * ================================================================
  *  - Chọn bé -> xem chương trình theo ngày -> bấm 1 nút tự phát hết.
- *  - Video nào lỗi / không cho nhúng -> tự động bỏ qua sang bài kế.
+ *  - Video lỗi / không cho nhúng / KẸT không chạy -> tự thử lại 1 lần,
+ *    không được thì tự bỏ qua sang bài kế (không đứng máy giữa đường).
+ *  - Nếu nhiều bài liên tiếp đều hỏng (mạng yếu...) thì dừng lại và
+ *    báo rõ, bấm ▶ để thử lại thay vì "nhảy" hết chương trình.
  *  - Giữ màn hình sáng khi đang phát (tiện để điện thoại trên xe).
  * ================================================================ */
 
 (function () {
   "use strict";
+
+  // ---- Các mốc thời gian (có thể ghi đè bằng window.KID_CONFIG khi kiểm thử) ----
+  var CFG = {
+    startTimeoutMs: 12000,   // sau khi nạp bài, quá thời gian này chưa chạy -> thử lại / bỏ qua
+    stallTimeoutMs: 20000,   // đang chạy mà kẹt buffering quá thời gian này -> thử lại / bỏ qua
+    readyTimeoutMs: 15000,   // trình phát YouTube không báo sẵn sàng -> dựng lại
+    apiWaitMs: 15000,        // chờ thư viện YouTube tải xong
+    maxFails: 4              // số bài hỏng liên tiếp thì dừng hẳn và báo người dùng
+  };
+  if (window.KID_CONFIG) {
+    Object.keys(window.KID_CONFIG).forEach(function (k) { CFG[k] = window.KID_CONFIG[k]; });
+  }
 
   // ---- Trạng thái ----
   var currentProfile = null;               // hồ sơ bé đang chọn
@@ -15,8 +30,13 @@
   var queue = [];                          // danh sách video của ngày đang chọn
   var current = 0;                         // vị trí bài đang phát
   var player = null;                       // đối tượng YT.Player
-  var apiReady = false;                    // API YouTube đã sẵn sàng chưa
-  var pendingStart = false;                // người dùng bấm phát khi API chưa sẵn sàng
+  var playerReady = false;                 // trình phát đã báo onReady chưa
+  var rebuilt = false;                     // đã dựng lại trình phát 1 lần chưa
+  var watchdog = null;                     // đồng hồ canh video kẹt
+  var apiPoll = null;                      // vòng chờ thư viện YouTube
+  var retried = false;                     // bài hiện tại đã thử lại 1 lần chưa
+  var failCount = 0;                       // số bài hỏng liên tiếp
+  var gaveUp = false;                      // đã dừng hẳn, chờ người dùng bấm ▶
   var wakeLock = null;                     // giữ màn hình sáng
 
   function $(id) { return document.getElementById(id); }
@@ -28,18 +48,14 @@
     done: $("done")
   };
 
-  // ================= API YouTube =================
-  window.onYouTubeIframeAPIReady = function () {
-    apiReady = true;
-    if (pendingStart) { pendingStart = false; createPlayer(); }
-  };
-
   function show(name) {
     Object.keys(screens).forEach(function (k) {
       screens[k].classList.toggle("hidden", k !== name);
     });
     window.scrollTo({ top: 0 });
   }
+
+  function setStatus(msg) { $("statusMsg").textContent = msg || ""; }
 
   // ================= Màn hình chọn bé =================
   function buildProfileCards() {
@@ -120,64 +136,229 @@
     });
   }
 
-  // ================= Phát video =================
-  function startPlaying() {
-    current = 0;
-    show("playing");
-    requestWakeLock();
-    if (!apiReady) {
-      pendingStart = true;
-      $("nowTitle").textContent = "Đang tải…";
+  // ================= Đồng hồ canh video kẹt =================
+  function clearWatchdog() {
+    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+  }
+
+  function armWatchdog(ms) {
+    clearWatchdog();
+    watchdog = setTimeout(onWatchdog, ms);
+  }
+
+  function onWatchdog() {
+    watchdog = null;
+    if (!playerReady) { rebuildPlayer(); return; }   // trình phát không lên
+    if (!retried) {                                   // lần 1: thử nạp lại (giữ vị trí đang xem)
+      retried = true;
+      setStatus("Video tải chậm, đang thử lại…");
+      var t = 0;
+      try { t = Math.floor(player.getCurrentTime() || 0); } catch (e) {}
+      loadCurrent(t);
       return;
     }
-    createPlayer();
+    skipBad("Video tải chậm.");                       // lần 2: bỏ qua
+  }
+
+  // ================= Phát video =================
+  function ytAvailable() { return !!(window.YT && window.YT.Player); }
+
+  function startPlaying() {
+    current = 0;
+    failCount = 0;
+    retried = false;
+    rebuilt = false;
+    gaveUp = false;
+    show("playing");
+    requestWakeLock();
+    updatePlayingUI();
+    setStatus("");
+    begin();
+  }
+
+  // Dùng cho cả lúc bắt đầu lẫn lúc bấm ▶ thử lại
+  function begin() {
+    if (!ytAvailable()) { waitForApi(); return; }
+    if (!player) createPlayer();
+    else if (playerReady) loadCurrent();
+    // nếu player đang dựng dở: onReady sẽ tự nạp bài
+  }
+
+  // Chờ thư viện YouTube (không phụ thuộc việc callback có kịp gọi hay không)
+  function waitForApi() {
+    stopApiPoll();
+    setStatus("Đang tải YouTube…");
+    var waited = 0;
+    apiPoll = setInterval(function () {
+      waited += 300;
+      if (ytAvailable()) {
+        stopApiPoll();
+        begin();
+      } else if (waited >= CFG.apiWaitMs) {
+        stopApiPoll();
+        giveUp("Không tải được YouTube. Kiểm tra mạng rồi bấm ▶ để thử lại.");
+      }
+    }, 300);
+  }
+
+  function stopApiPoll() {
+    if (apiPoll) { clearInterval(apiPoll); apiPoll = null; }
   }
 
   function createPlayer() {
+    playerReady = false;
+    setStatus("Đang kết nối YouTube…");
+    try {
+      player = new YT.Player("player", {
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,   // phát ngay trong trang trên iPhone
+          rel: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onStateChange,
+          onError: onError
+        }
+      });
+    } catch (e) {
+      giveUp("Không khởi động được trình phát. Bấm ▶ để thử lại.");
+      return;
+    }
+    armWatchdog(CFG.readyTimeoutMs);
+  }
+
+  function onPlayerReady() {
+    playerReady = true;
+    rebuilt = false;
+    clearWatchdog();
+    loadCurrent();
+  }
+
+  function destroyPlayer() {
+    try { if (player && player.destroy) player.destroy(); } catch (e) {}
+    player = null;
+    playerReady = false;
+    var wrap = document.querySelector(".player-wrap");
+    if (wrap) wrap.innerHTML = '<div id="player"></div>';
+  }
+
+  function rebuildPlayer() {
+    if (rebuilt) {
+      giveUp("Không kết nối được YouTube. Bấm ▶ để thử lại.");
+      return;
+    }
+    rebuilt = true;
+    setStatus("Đang kết nối lại…");
+    destroyPlayer();
+    createPlayer();
+  }
+
+  // Nạp bài đang trỏ tới (current) và bật đồng hồ canh kẹt
+  function loadCurrent(startSeconds) {
+    clearWatchdog();
     updatePlayingUI();
-    if (player) { player.loadVideoById(queue[current].id); return; }
-    player = new YT.Player("player", {
-      videoId: queue[current].id,
-      playerVars: {
-        autoplay: 1,
-        playsinline: 1,   // phát ngay trong trang trên iPhone
-        rel: 0,
-        modestbranding: 1
-      },
-      events: {
-        onReady: function (e) { e.target.playVideo(); },
-        onStateChange: onStateChange,
-        onError: onError
-      }
-    });
+    if (!player || !playerReady) return;   // onReady sẽ gọi lại
+    try {
+      player.loadVideoById({
+        videoId: queue[current].id,
+        startSeconds: startSeconds || 0
+      });
+    } catch (e) {
+      skipBad("Không nạp được video.");
+      return;
+    }
+    armWatchdog(CFG.startTimeoutMs);
   }
 
   function onStateChange(e) {
-    if (e.data === YT.PlayerState.ENDED) goNext();
-    if (e.data === YT.PlayerState.PLAYING) $("playPauseBtn").textContent = "⏸";
-    if (e.data === YT.PlayerState.PAUSED) $("playPauseBtn").textContent = "▶";
+    var S = YT.PlayerState;
+    switch (e.data) {
+      case S.ENDED:
+        clearWatchdog();
+        goNext(false);
+        break;
+      case S.PLAYING:
+        clearWatchdog();
+        failCount = 0;
+        retried = false;
+        setStatus("");
+        $("playPauseBtn").textContent = "⏸";
+        break;
+      case S.PAUSED:
+        clearWatchdog();                    // người dùng chủ động tạm dừng
+        $("playPauseBtn").textContent = "▶";
+        break;
+      case S.BUFFERING:
+        if (!watchdog) armWatchdog(CFG.stallTimeoutMs);
+        break;
+    }
   }
 
-  function onError() { goNext(); }  // video lỗi -> bỏ qua
+  function onError() { skipBad("Video không phát được."); }
 
-  function goNext() {
+  // Bài hỏng -> bỏ qua sang bài kế (hoặc dừng hẳn nếu hỏng liên tiếp quá nhiều)
+  function skipBad(reason) {
+    clearWatchdog();
+    failCount++;
+    if (failCount >= Math.min(queue.length, CFG.maxFails)) {
+      giveUp("Không phát được lúc này (mạng yếu hoặc video bị chặn). " +
+             "Bấm ▶ để thử lại, hoặc ⏭ để bỏ qua.");
+      return;
+    }
+    setStatus(reason + " Chuyển bài tiếp…");
+    goNext(false);
+  }
+
+  // Dừng hẳn, báo người dùng, chờ bấm ▶
+  function giveUp(msg) {
+    clearWatchdog();
+    stopApiPoll();
+    if (player && !playerReady) destroyPlayer();
+    gaveUp = true;
+    setStatus(msg);
+    $("playPauseBtn").textContent = "▶";
+  }
+
+  function goNext(manual) {
+    clearWatchdog();
+    if (manual) { gaveUp = false; failCount = 0; setStatus(""); }
+    retried = false;
     if (current >= queue.length - 1) { finish(); return; }
     current++;
-    player.loadVideoById(queue[current].id);
-    updatePlayingUI();
+    loadCurrent();
   }
 
   function goPrev() {
-    if (current <= 0) { player.seekTo(0); return; }
+    clearWatchdog();
+    gaveUp = false;
+    failCount = 0;
+    retried = false;
+    setStatus("");
+    if (current <= 0) {
+      if (player && playerReady) { try { player.seekTo(0); } catch (e) {} }
+      return;
+    }
     current--;
-    player.loadVideoById(queue[current].id);
-    updatePlayingUI();
+    loadCurrent();
   }
 
   function togglePlayPause() {
-    if (!player || !player.getPlayerState) return;
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-    else player.playVideo();
+    if (gaveUp) {                           // đang dừng vì lỗi -> thử lại từ bài hiện tại
+      gaveUp = false;
+      failCount = 0;
+      retried = false;
+      rebuilt = false;
+      setStatus("");
+      begin();
+      return;
+    }
+    if (!player || !playerReady) return;
+    try {
+      if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+      else player.playVideo();
+    } catch (e) {}
   }
 
   function updatePlayingUI() {
@@ -186,15 +367,22 @@
     renderTracklist($("playTracklist"), true);
   }
 
-  function finish() {
-    show("done");
+  function stopPlayback() {
+    clearWatchdog();
+    stopApiPoll();
+    gaveUp = false;
+    setStatus("");
+    if (player && playerReady) { try { player.stopVideo(); } catch (e) {} }
     releaseWakeLock();
-    if (player && player.stopVideo) player.stopVideo();
+  }
+
+  function finish() {
+    stopPlayback();
+    show("done");
   }
 
   function stopAndHome() {
-    if (player && player.stopVideo) player.stopVideo();
-    releaseWakeLock();
+    stopPlayback();
     loadDay(selectedDay);
     show("home");
   }
@@ -222,7 +410,7 @@
   $("replayBtn").addEventListener("click", startPlaying);
   $("homeBtn").addEventListener("click", stopAndHome);
   $("stopBtn").addEventListener("click", stopAndHome);
-  $("nextBtn").addEventListener("click", goNext);
+  $("nextBtn").addEventListener("click", function () { goNext(true); });
   $("prevBtn").addEventListener("click", goPrev);
   $("playPauseBtn").addEventListener("click", togglePlayPause);
 
